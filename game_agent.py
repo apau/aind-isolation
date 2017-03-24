@@ -46,8 +46,8 @@ def custom_score(game, player):
         return float("inf")
 
     own_moves = len(game.get_legal_moves(player))
-  #  opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
-    return float(own_moves)
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    return float(own_moves - opp_moves)
 
 
 class CustomPlayer:
@@ -131,7 +131,7 @@ class CustomPlayer:
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
         if not game.get_legal_moves():
-            return -1, -1
+            return (-1, -1)
 
         try:
             # The search method call (alpha beta or minimax) should happen in
@@ -139,13 +139,7 @@ class CustomPlayer:
             # automatically catch the exception raised by the search method
             # when the timer gets close to expiring
 
-       #     search_func = getattr(self, self.method)
-            if self.method == 'minimax':
-                search_func = self.minimax
-            elif self.method == 'alphabeta':
-                search_func = self.alphabeta
-            else:
-                raise Exception("Unknown search algorithm: ", self.method)
+            search_func = getattr(self, self.method)
 
             move = (-1, -1)
             if self.iterative:
@@ -157,7 +151,8 @@ class CustomPlayer:
             else:
                 _, move = search_func(game, self.search_depth)
         except Timeout:
-            print("get_move timed out...")
+            # if self.iterative:
+            #    print("Timed out... ID to depth=", depth)
             pass
         return move
 
@@ -198,6 +193,7 @@ class CustomPlayer:
 
             if depth == 0 or not game.get_legal_moves():
                 return self.score(game, player), (-1, -1)
+
             score = float("inf")
             move = (-1, -1)
             for m in game.get_legal_moves():
@@ -210,14 +206,16 @@ class CustomPlayer:
         def max_value(game, depth):
             if self.time_left() < self.TIMER_THRESHOLD:
                 raise Timeout()
+
             if depth == 0 or not game.get_legal_moves():
                 return self.score(game, player), (-1, -1)
+
             score = float("-inf")
             move = (-1, -1)
             for m in game.get_legal_moves():
                 s, _ = min_value(game.forecast_move(m), depth - 1)
                 # find the max(score, v)
-                if score < s:
+                if s > score:
                     score = s
                     move = m
             return score, move
@@ -228,12 +226,13 @@ class CustomPlayer:
                 raise Timeout()
 
             if maximizing_player:
-                return max_value(game, depth)
+                s, m = max_value(game, depth)
             else:
-                return min_value(game, depth)
+                s, m = min_value(game, depth)
         except:
-            traceback.print_exc()
+            # traceback.print_exc()
             raise
+        return s, m
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
             """Implement minimax search with alpha-beta pruning as described in the
@@ -280,6 +279,7 @@ class CustomPlayer:
 
                 if depth == 0 or not game.get_legal_moves():
                     return self.score(game, player), (-1, -1)
+
                 score = float("inf")
                 move = (-1, -1)
                 for m in game.get_legal_moves():
@@ -299,6 +299,7 @@ class CustomPlayer:
                     raise Timeout()
                 if depth == 0 or not game.get_legal_moves():
                     return self.score(game, player), (-1, -1)
+
                 score = float("-inf")
                 move = (-1, -1)
                 for m in game.get_legal_moves():
@@ -306,6 +307,7 @@ class CustomPlayer:
                     if s > score:
                         score = s
                         move = m
+                    #pruning
                     if score >= beta:
                         break
                     # update the value for alpha
@@ -318,15 +320,13 @@ class CustomPlayer:
                     raise Timeout()
 
                 if depth == 0 or not game.get_legal_moves():
-                    return self.score(game, player)
+                    return self.score(game, player), (-1, -1)
 
                 if maximizing_player:
-                    return max_value(game, depth, alpha, beta)
+                    s, m = max_value(game, depth, alpha, beta)
                 else:
-                    return min_value(game, depth, alpha, beta)
+                    s, m = min_value(game, depth, alpha, beta)
             except:
-                traceback.print_exc()
+                # traceback.print_exc()
                 raise
-
-
-
+            return s, m
